@@ -1,0 +1,12 @@
+apache-airflow
+requests
+pandas
+python-dotenv
+snowflake-connector-python
+snowflake-sqlalchemy
+dbt-core
+dbt-snowflake
+pytest
+flake8
+sqlfluff
+sqlfluff-templater-dbt
