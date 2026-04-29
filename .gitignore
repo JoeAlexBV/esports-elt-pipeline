@@ -17,6 +17,7 @@ plugins/__pycache__/
 
 # dbt
 dbt_packages/
+dbt_internal_packages/
 target/
 logs/
 profiles.yml

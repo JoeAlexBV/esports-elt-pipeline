@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: stg_leagues
+    columns:
+      - name: league_id
+        tests:
+          - not_null
+          - unique
+
+      - name: league_name
+        tests:
+          - not_null
+
+  - name: dim_leagues
+    columns:
+      - name: league_id
+        tests:
+          - not_null
+          - unique

@@ -1,0 +1,19 @@
+name: esports_warehouse
+version: "1.0.0"
+config-version: 2
+
+profile: esports_warehouse
+
+model-paths: ["models"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+
+models:
+  esports_warehouse:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table
