@@ -1,3 +1,6 @@
+# Maps each entity to the ordered list of columns expected by its RAW table.
+# This keeps load logic clean and avoids hardcoding the same list repeatedly.
+
 TABLE_COLUMN_CONFIGS = {
     "LEAGUES": [
         "league_id",
@@ -7,5 +10,59 @@ TABLE_COLUMN_CONFIGS = {
         "modified_at",
         "ingested_at",
     ],
+    "TOURNAMENTS": [
+        "tournament_id",
+        "tournament_name",
+        "tournament_slug",
+        "tournament_status",
+        "begin_at",
+        "end_at",
+        "league_id",
+        "league_name",
+        "videogame_name",
+        "modified_at",
+        "ingested_at",
+    ],
+    "TEAMS": [
+        "team_id",
+        "team_name",
+        "team_acronym",
+        "team_slug",
+        "team_location",
+        "modified_at",
+        "ingested_at",
+    ],
+    "MATCHES": [
+        "match_id",
+        "match_name",
+        "match_status",
+        "scheduled_at",
+        "begin_at",
+        "end_at",
+        "tournament_id",
+        "tournament_name",
+        "league_id",
+        "league_name",
+        "videogame_name",
+        "number_of_games",
+        "winner_id",
+        "winner_type",
+        "opponent_1_id",
+        "opponent_1_name",
+        "opponent_2_id",
+        "opponent_2_name",
+        "modified_at",
+        "ingested_at",
+    ],
+    "TOURNAMENT_ROSTERS": [
+        "tournament_id",
+        "tournament_name",
+        "team_id",
+        "team_name",
+        "player_id",
+        "player_name",
+        "player_role",
+        "modified_at",
+        "ingested_at",
+    ],
 }
-# keeps load logic clean and avoids hardcoding the same list repeatedly

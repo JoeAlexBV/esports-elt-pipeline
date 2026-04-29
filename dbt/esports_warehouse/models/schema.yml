@@ -1,20 +1,112 @@
 version: 2
 
 models:
+
+  # ── Staging ────────────────────────────────────────────────────────────────
+
   - name: stg_leagues
+    description: "Deduplicated staging model for leagues from ESPORTS.RAW.LEAGUES."
     columns:
       - name: league_id
+        description: "Primary key — PandaScore league ID."
         tests:
-          - not_null
           - unique
-
+          - not_null
       - name: league_name
         tests:
           - not_null
 
-  - name: dim_leagues
+  - name: stg_tournaments
+    description: "Deduplicated staging model for tournaments from ESPORTS.RAW.TOURNAMENTS."
     columns:
-      - name: league_id
+      - name: tournament_id
+        description: "Primary key — PandaScore tournament ID."
+        tests:
+          - unique
+          - not_null
+      - name: tournament_name
         tests:
           - not_null
+
+  - name: stg_teams
+    description: "Deduplicated staging model for teams from ESPORTS.RAW.TEAMS."
+    columns:
+      - name: team_id
+        description: "Primary key — PandaScore team ID."
+        tests:
           - unique
+          - not_null
+      - name: team_name
+        tests:
+          - not_null
+
+  - name: stg_matches
+    description: "Deduplicated staging model for matches from ESPORTS.RAW.MATCHES."
+    columns:
+      - name: match_id
+        description: "Primary key — PandaScore match ID."
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_tournament_rosters
+    description: >
+      Deduplicated staging model for tournament team participation.
+      One row per tournament-team pair. Player-level data is NULL in MVP.
+    columns:
+      - name: tournament_id
+        tests:
+          - not_null
+      - name: team_id
+        tests:
+          - not_null
+
+  # ── Marts ──────────────────────────────────────────────────────────────────
+
+  - name: dim_leagues
+    description: "Dimension table for esports leagues."
+    columns:
+      - name: league_id
+        description: "Primary key."
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_tournaments
+    description: "Dimension table for esports tournaments."
+    columns:
+      - name: tournament_id
+        description: "Primary key."
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_teams
+    description: "Dimension table for esports teams."
+    columns:
+      - name: team_id
+        description: "Primary key."
+        tests:
+          - unique
+          - not_null
+
+  - name: fact_matches
+    description: "Fact table for esports matches including opponents and outcome."
+    columns:
+      - name: match_id
+        description: "Primary key."
+        tests:
+          - unique
+          - not_null
+
+  - name: fact_tournament_team_participation
+    description: >
+      Fact table for team participation in tournaments.
+      One row per tournament-team pair.
+    columns:
+      - name: tournament_id
+        tests:
+          - not_null
+      - name: team_id
+        tests:
+          - not_null

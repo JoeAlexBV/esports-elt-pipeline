@@ -9,96 +9,160 @@ from src.extract.serializers import serialize_records
 from src.load.snowflake_loader import load_records_to_snowflake
 from src.load.table_configs import TABLE_COLUMN_CONFIGS
 
+# ── Shared helpers ─────────────────────────────────────────────────────────────
 
-def extract_leagues(**context):
+DBT_DIR = "/opt/airflow/dbt/esports_warehouse"
+DBT_BASE = f"cd {DBT_DIR} && dbt"
+DBT_PROFILES = f"--profiles-dir {DBT_DIR}"
+
+
+def make_extract_task(entity: str):
     """
-    Task 1:
-    Pull raw league records from the PandaScore API.
-
-    We store the raw response in XCom so the next task can retrieve it.
-    XCom is Airflow's way of passing small pieces of data between tasks.
+    Returns a callable for PythonOperator that fetches raw records from
+    PandaScore and pushes them to XCom under key 'raw_{entity}'.
     """
-    raw_records = fetch_endpoint_data("leagues")
-    context["ti"].xcom_push(key="raw_leagues", value=raw_records)
+    def extract(**context):
+        raw_records = fetch_endpoint_data(entity)
+        context["ti"].xcom_push(key=f"raw_{entity}", value=raw_records)
+    extract.__name__ = f"extract_{entity}"
+    return extract
 
 
-def load_leagues(**context):
+def make_load_task(entity: str, table_name: str):
     """
-    Task 2:
-    Pull the raw leagues data from XCom, serialize it into our
-    lightly normalized warehouse format, and load it into Snowflake.
+    Returns a callable for PythonOperator that pulls raw records from XCom,
+    serializes them, and loads them into the given Snowflake RAW table.
     """
-    # Pull the raw API response that was pushed by extract_leagues
-    raw_records = context["ti"].xcom_pull(
-        key="raw_leagues",
-        task_ids="extract_leagues",
-    )
+    def load(**context):
+        raw_records = context["ti"].xcom_pull(
+            key=f"raw_{entity}",
+            task_ids=f"extract_{entity}",
+        )
+        serialized = serialize_records(entity, raw_records)
+        load_records_to_snowflake(
+            records=serialized,
+            table_name=table_name,
+            column_order=TABLE_COLUMN_CONFIGS[table_name.split(".")[-1]],
+        )
+    load.__name__ = f"load_{entity}"
+    return load
 
-    # Convert raw PandaScore JSON into our normalized Snowflake row structure
-    serialized_records = serialize_records("leagues", raw_records)
 
-    # Insert into Snowflake RAW table
-    load_records_to_snowflake(
-        records=serialized_records,
-        table_name="ESPORTS.RAW.LEAGUES",
-        column_order=TABLE_COLUMN_CONFIGS["LEAGUES"],
-    )
-
+# ── DAG definition ─────────────────────────────────────────────────────────────
 
 with DAG(
     dag_id="esports_pipeline",
-    description="Leagues-only MVP pipeline: extract, load, transform, test",
+    description="Full MVP pipeline: leagues, tournaments, teams, matches, rosters",
     start_date=datetime(2024, 1, 1),
     schedule="@daily",
     catchup=False,
     tags=["esports", "snowflake", "dbt"],
 ) as dag:
 
-    # Task 1: extract raw leagues data from PandaScore
+    # ── Extract tasks ──────────────────────────────────────────────────────────
+
     extract_leagues_task = PythonOperator(
         task_id="extract_leagues",
-        python_callable=extract_leagues,
+        python_callable=make_extract_task("leagues"),
     )
 
-    # Task 2: serialize and load leagues into Snowflake RAW.LEAGUES
+    extract_tournaments_task = PythonOperator(
+        task_id="extract_tournaments",
+        python_callable=make_extract_task("tournaments"),
+    )
+
+    extract_teams_task = PythonOperator(
+        task_id="extract_teams",
+        python_callable=make_extract_task("teams"),
+    )
+
+    extract_matches_task = PythonOperator(
+        task_id="extract_matches",
+        python_callable=make_extract_task("matches"),
+    )
+
+    extract_rosters_task = PythonOperator(
+        task_id="extract_tournament_rosters",
+        python_callable=make_extract_task("tournament_rosters"),
+    )
+
+    # ── Load tasks ─────────────────────────────────────────────────────────────
+
     load_leagues_task = PythonOperator(
         task_id="load_leagues",
-        python_callable=load_leagues,
+        python_callable=make_load_task("leagues", "ESPORTS.RAW.LEAGUES"),
     )
 
-    # Task 3: build the dbt staging model
-    # This creates/refreshes ESPORTS.ANALYTICS.STG_LEAGUES
+    load_tournaments_task = PythonOperator(
+        task_id="load_tournaments",
+        python_callable=make_load_task("tournaments", "ESPORTS.RAW.TOURNAMENTS"),
+    )
+
+    load_teams_task = PythonOperator(
+        task_id="load_teams",
+        python_callable=make_load_task("teams", "ESPORTS.RAW.TEAMS"),
+    )
+
+    load_matches_task = PythonOperator(
+        task_id="load_matches",
+        python_callable=make_load_task("matches", "ESPORTS.RAW.MATCHES"),
+    )
+
+    load_rosters_task = PythonOperator(
+        task_id="load_tournament_rosters",
+        python_callable=make_load_task("tournament_rosters", "ESPORTS.RAW.TOURNAMENT_ROSTERS"),
+    )
+
+    # ── dbt tasks ──────────────────────────────────────────────────────────────
+
+    # Run all staging models in one step
     dbt_run_staging = BashOperator(
         task_id="dbt_run_staging",
         bash_command=(
-            "cd /opt/airflow/dbt/esports_warehouse && "
-            "dbt run --select stg_leagues "
-            "--profiles-dir /opt/airflow/dbt/esports_warehouse"
+            f"{DBT_BASE} run "
+            f"--select stg_leagues stg_tournaments stg_teams stg_matches stg_tournament_rosters "
+            f"{DBT_PROFILES}"
         ),
     )
 
-    # Task 4: build the dbt mart/dimension model
-    # This creates/refreshes ESPORTS.ANALYTICS.DIM_LEAGUES
+    # Run all mart models in one step
     dbt_run_marts = BashOperator(
         task_id="dbt_run_marts",
         bash_command=(
-            "cd /opt/airflow/dbt/esports_warehouse && "
-            "dbt run --select dim_leagues "
-            "--profiles-dir /opt/airflow/dbt/esports_warehouse"
+            f"{DBT_BASE} run "
+            f"--select dim_leagues dim_tournaments dim_teams fact_matches fact_tournament_team_participation "
+            f"{DBT_PROFILES}"
         ),
     )
 
-    # Task 5: run dbt tests against both models
-    # This validates constraints like unique/not_null that we defined in schema.yml
+    # Test all models
     dbt_test = BashOperator(
         task_id="dbt_test",
         bash_command=(
-            "cd /opt/airflow/dbt/esports_warehouse && "
-            "dbt test --select stg_leagues dim_leagues "
-            "--profiles-dir /opt/airflow/dbt/esports_warehouse"
+            f"{DBT_BASE} test "
+            f"--select stg_leagues stg_tournaments stg_teams stg_matches stg_tournament_rosters "
+            f"dim_leagues dim_tournaments dim_teams fact_matches fact_tournament_team_participation "
+            f"{DBT_PROFILES}"
         ),
     )
 
-    # Define task order:
-    # extract -> load -> dbt staging -> dbt mart -> dbt tests
-    extract_leagues_task >> load_leagues_task >> dbt_run_staging >> dbt_run_marts >> dbt_test
+    # ── Task dependencies ──────────────────────────────────────────────────────
+    #
+    # Each extract/load pair runs independently.
+    # All loads must complete before dbt begins.
+    # dbt runs sequentially: staging → marts → tests.
+    # Extract tasks → Load tasks → dbt staging → dbt marts → dbt tests
+
+    extract_leagues_task     >> load_leagues_task
+    extract_tournaments_task >> load_tournaments_task
+    extract_teams_task       >> load_teams_task
+    extract_matches_task     >> load_matches_task
+    extract_rosters_task     >> load_rosters_task
+
+    [
+        load_leagues_task,
+        load_tournaments_task,
+        load_teams_task,
+        load_matches_task,
+        load_rosters_task,
+    ] >> dbt_run_staging >> dbt_run_marts >> dbt_test
