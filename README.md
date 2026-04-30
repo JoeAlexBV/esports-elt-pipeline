@@ -22,7 +22,38 @@ This project demonstrates:
 
 ## Architecture
 
-![Architecture](docs/diagrams/architecture.png)
+```mermaid
+flowchart TD
+    API["🌐 PandaScore API"]
+
+    subgraph PYTHON["Python ELT Layer"]
+        CLIENT["pandascore_client.py"] --> SERIAL["serializers.py"] --> LOADER["snowflake_loader.py"]
+    end
+
+    subgraph RAW["Snowflake · ESPORTS.RAW"]
+        R1["LEAGUES"] --- R2["TOURNAMENTS"] --- R3["TEAMS"] --- R4["MATCHES"] --- R5["TOURNAMENT_ROSTERS"]
+    end
+
+    subgraph DBT["dbt Core"]
+        STG["Staging"] --> INT["Intermediate"] --> MRT["Marts"]
+    end
+
+    subgraph ANALYTICS["Snowflake · ESPORTS.ANALYTICS"]
+        A1["DIM_LEAGUES"] --- A2["DIM_TOURNAMENTS"] --- A3["DIM_TEAMS"]
+        A4["FACT_MATCHES"] --- A5["MART_TEAM_MATCH_RESULTS"] --- A6["MART_TOURNAMENT_ACTIVITY"]
+    end
+
+    subgraph INFRA["Orchestration + Infrastructure"]
+        AF["☁️ Apache Airflow 2.9"] --- DC["🐳 Docker Compose"]
+    end
+
+    API -->|"HTTP GET"| CLIENT
+    LOADER -->|"INSERT"| RAW
+    RAW -->|"SELECT"| DBT
+    DBT -->|"CREATE TABLE AS"| ANALYTICS
+    AF -->|"orchestrates"| PYTHON
+    AF -->|"orchestrates"| DBT
+```
 
 | Layer | Technology | Description |
 |---|---|---|
@@ -37,6 +68,12 @@ This project demonstrates:
 ## Pipeline DAG
 
 The Airflow DAG runs all five entities in parallel through extract and load, then hands off to dbt sequentially:
+![Airflow DAG Graph](docs/screenshots/airflow_dag_graph.png)
+
+*All 13 tasks passing — parallel extract/load fan-in to sequential dbt run*
+
+![Airflow DAG Runs](docs/screenshots/airflow_dag_runs.png)
+*Successful pipeline run history in the Airflow UI*
 
 ## Data Model
 
@@ -51,6 +88,10 @@ Five lightly normalized tables, one per entity. Each row represents one record a
 | `TEAMS` | One row per team | `team_id`, `team_name`, `team_acronym`, `team_location` |
 | `MATCHES` | One row per match | `match_id`, `tournament_id`, `opponent_1_id`, `opponent_2_id`, `winner_id` |
 | `TOURNAMENT_ROSTERS` | One row per tournament-team pair | `tournament_id`, `team_id` |
+
+![Snowflake RAW Table Counts](docs/screenshots/snowflake_raw_counts.png)
+
+*Raw layer row counts across all 5 entities after pipeline run*
 
 ### Analytics Layer — `ESPORTS.ANALYTICS`
 
@@ -69,6 +110,10 @@ Five lightly normalized tables, one per entity. Each row represents one record a
 | `fact_tournament_team_participation` | Mart | Team participation per tournament |
 | `mart_team_match_results` | Mart | One row per team per match with win/loss outcome |
 | `mart_tournament_activity` | Mart | Tournament enriched with team count and match count aggregations |
+
+![Snowflake Analytics Table Counts](docs/screenshots/snowflake_analytics_counts.png)
+
+*Analytics layer row counts across all 7 dbt models after pipeline run*
 
 ## Tech Stack
 
@@ -167,6 +212,10 @@ Run inside the Docker container — no credentials required, all external calls 
 ```bash
 docker compose exec airflow-webserver pytest tests/unit/ -v
 ```
+
+![Pytest passing Tests](docs/screenshots/pytest_passing.png)
+
+*34 unit tests passing across all three modules*
 
 ### Test Coverage
 
