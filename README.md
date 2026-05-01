@@ -24,7 +24,7 @@ This project demonstrates:
 
 ```mermaid
 flowchart TD
-    API["🌐 PandaScore API"]
+    API["PandaScore API"]
 
     subgraph PYTHON["Python ELT Layer"]
         CLIENT["pandascore_client.py"] --> SERIAL["serializers.py"] --> LOADER["snowflake_loader.py"]
@@ -44,7 +44,7 @@ flowchart TD
     end
 
     subgraph INFRA["Orchestration + Infrastructure"]
-        AF["☁️ Apache Airflow 2.9"] --- DC["🐳 Docker Compose"]
+        AF["Apache Airflow 2.9"] --- DC["Docker Compose"]
     end
 
     API -->|"HTTP GET"| CLIENT
