@@ -7,6 +7,7 @@ Strategy:
 - Verify None/missing fields are handled safely
 - Verify tournament_rosters fan-out (1 tournament → N team rows)
 """
+
 import pytest
 from unittest.mock import patch
 
@@ -22,7 +23,8 @@ from src.extract.serializers import (
 FAKE_NOW = "2026-01-01T00:00:00+00:00"
 
 
-# ── serialize_league ───────────────────────────────────────────────────────────
+# ── serialize_league ───────────────────────────────────────────────────────
+
 
 @patch("src.extract.serializers.utc_now_iso", return_value=FAKE_NOW)
 def test_serialize_league_maps_all_fields(mock_now):
@@ -35,10 +37,10 @@ def test_serialize_league_maps_all_fields(mock_now):
     }
     result = serialize_league(raw)
 
-    assert result["league_id"]   == 42
+    assert result["league_id"] == 42
     assert result["league_name"] == "LCS"
     assert result["league_slug"] == "lcs"
-    assert result["league_url"]  == "https://lolesports.com"
+    assert result["league_url"] == "https://lolesports.com"
     assert result["modified_at"] == "2024-01-01T00:00:00Z"
     assert result["ingested_at"] == FAKE_NOW
 
@@ -48,12 +50,13 @@ def test_serialize_league_handles_missing_fields(mock_now):
     """Missing fields should produce None values, not KeyErrors."""
     result = serialize_league({})
 
-    assert result["league_id"]   is None
+    assert result["league_id"] is None
     assert result["league_name"] is None
-    assert result["league_url"]  is None
+    assert result["league_url"] is None
 
 
-# ── serialize_tournament ───────────────────────────────────────────────────────
+# ── serialize_tournament ───────────────────────────────────────────────────
+
 
 @patch("src.extract.serializers.utc_now_iso", return_value=FAKE_NOW)
 def test_serialize_tournament_maps_all_fields(mock_now):
@@ -70,14 +73,14 @@ def test_serialize_tournament_maps_all_fields(mock_now):
     }
     result = serialize_tournament(raw)
 
-    assert result["tournament_id"]     == 10
-    assert result["tournament_name"]   == "Worlds 2024"
-    assert result["tournament_slug"]   == "worlds-2024"
+    assert result["tournament_id"] == 10
+    assert result["tournament_name"] == "Worlds 2024"
+    assert result["tournament_slug"] == "worlds-2024"
     assert result["tournament_status"] == "finished"
-    assert result["league_id"]         == 1
-    assert result["league_name"]       == "LCS"
-    assert result["videogame_name"]    == "League of Legends"
-    assert result["ingested_at"]       == FAKE_NOW
+    assert result["league_id"] == 1
+    assert result["league_name"] == "LCS"
+    assert result["videogame_name"] == "League of Legends"
+    assert result["ingested_at"] == FAKE_NOW
 
 
 @patch("src.extract.serializers.utc_now_iso", return_value=FAKE_NOW)
@@ -86,12 +89,13 @@ def test_serialize_tournament_handles_null_nested_fields(mock_now):
     raw = {"id": 10, "name": "T", "league": None, "videogame": None}
     result = serialize_tournament(raw)
 
-    assert result["league_id"]      is None
-    assert result["league_name"]    is None
+    assert result["league_id"] is None
+    assert result["league_name"] is None
     assert result["videogame_name"] is None
 
 
-# ── serialize_team ─────────────────────────────────────────────────────────────
+# ── serialize_team ─────────────────────────────────────────────────────────
+
 
 @patch("src.extract.serializers.utc_now_iso", return_value=FAKE_NOW)
 def test_serialize_team_maps_all_fields(mock_now):
@@ -105,23 +109,24 @@ def test_serialize_team_maps_all_fields(mock_now):
     }
     result = serialize_team(raw)
 
-    assert result["team_id"]       == 7
-    assert result["team_name"]     == "Cloud9"
-    assert result["team_acronym"]  == "C9"
-    assert result["team_slug"]     == "cloud9"
+    assert result["team_id"] == 7
+    assert result["team_name"] == "Cloud9"
+    assert result["team_acronym"] == "C9"
+    assert result["team_slug"] == "cloud9"
     assert result["team_location"] == "NA"
-    assert result["ingested_at"]   == FAKE_NOW
+    assert result["ingested_at"] == FAKE_NOW
 
 
 @patch("src.extract.serializers.utc_now_iso", return_value=FAKE_NOW)
 def test_serialize_team_handles_missing_fields(mock_now):
     result = serialize_team({})
 
-    assert result["team_id"]      is None
+    assert result["team_id"] is None
     assert result["team_acronym"] is None
 
 
-# ── serialize_match ────────────────────────────────────────────────────────────
+# ── serialize_match ────────────────────────────────────────────────────────
+
 
 @patch("src.extract.serializers.utc_now_iso", return_value=FAKE_NOW)
 def test_serialize_match_maps_all_fields(mock_now):
@@ -146,32 +151,36 @@ def test_serialize_match_maps_all_fields(mock_now):
     }
     result = serialize_match(raw)
 
-    assert result["match_id"]        == 99
-    assert result["match_name"]      == "C9 vs TL"
-    assert result["match_status"]    == "finished"
-    assert result["tournament_id"]   == 10
-    assert result["league_id"]       == 1
-    assert result["winner_id"]       == 7
-    assert result["opponent_1_id"]   == 7
+    assert result["match_id"] == 99
+    assert result["match_name"] == "C9 vs TL"
+    assert result["match_status"] == "finished"
+    assert result["tournament_id"] == 10
+    assert result["league_id"] == 1
+    assert result["winner_id"] == 7
+    assert result["opponent_1_id"] == 7
     assert result["opponent_1_name"] == "Cloud9"
-    assert result["opponent_2_id"]   == 8
+    assert result["opponent_2_id"] == 8
     assert result["opponent_2_name"] == "Team Liquid"
-    assert result["ingested_at"]     == FAKE_NOW
+    assert result["ingested_at"] == FAKE_NOW
 
 
 @patch("src.extract.serializers.utc_now_iso", return_value=FAKE_NOW)
 def test_serialize_match_handles_empty_opponents(mock_now):
     """Matches with no opponents should produce None, not IndexError."""
     raw = {
-        "id": 1, "name": "T", "opponents": [],
-        "tournament": None, "league": None,
-        "videogame": None, "winner": None,
+        "id": 1,
+        "name": "T",
+        "opponents": [],
+        "tournament": None,
+        "league": None,
+        "videogame": None,
+        "winner": None,
     }
     result = serialize_match(raw)
 
-    assert result["opponent_1_id"]   is None
+    assert result["opponent_1_id"] is None
     assert result["opponent_1_name"] is None
-    assert result["opponent_2_id"]   is None
+    assert result["opponent_2_id"] is None
     assert result["opponent_2_name"] is None
 
 
@@ -179,15 +188,18 @@ def test_serialize_match_handles_empty_opponents(mock_now):
 def test_serialize_match_handles_one_opponent(mock_now):
     """Matches with only one opponent should not error on opponent_2."""
     raw = {
-        "id": 1, "name": "T",
+        "id": 1,
+        "name": "T",
         "opponents": [{"opponent": {"id": 5, "name": "TeamA"}}],
-        "tournament": None, "league": None,
-        "videogame": None, "winner": None,
+        "tournament": None,
+        "league": None,
+        "videogame": None,
+        "winner": None,
     }
     result = serialize_match(raw)
 
-    assert result["opponent_1_id"]   == 5
-    assert result["opponent_2_id"]   is None
+    assert result["opponent_1_id"] == 5
+    assert result["opponent_2_id"] is None
     assert result["opponent_2_name"] is None
 
 
@@ -195,19 +207,24 @@ def test_serialize_match_handles_one_opponent(mock_now):
 def test_serialize_match_handles_null_nested_fields(mock_now):
     """tournament, league, videogame, winner can all be null."""
     raw = {
-        "id": 1, "name": "T", "opponents": [],
-        "tournament": None, "league": None,
-        "videogame": None, "winner": None,
+        "id": 1,
+        "name": "T",
+        "opponents": [],
+        "tournament": None,
+        "league": None,
+        "videogame": None,
+        "winner": None,
     }
     result = serialize_match(raw)
 
-    assert result["tournament_id"]  is None
-    assert result["league_id"]      is None
+    assert result["tournament_id"] is None
+    assert result["league_id"] is None
     assert result["videogame_name"] is None
-    assert result["winner_id"]      is None
+    assert result["winner_id"] is None
 
 
-# ── serialize_tournament_roster ────────────────────────────────────────────────
+# ── serialize_tournament_roster ────────────────────────────────────────────
+
 
 @patch("src.extract.serializers.utc_now_iso", return_value=FAKE_NOW)
 def test_serialize_roster_fans_out_one_row_per_team(mock_now):
@@ -225,9 +242,9 @@ def test_serialize_roster_fans_out_one_row_per_team(mock_now):
     result = serialize_tournament_roster(raw)
 
     assert len(result) == 3
-    assert result[0]["team_id"]         == 1
-    assert result[1]["team_name"]       == "Team Liquid"
-    assert result[2]["tournament_id"]   == 10
+    assert result[0]["team_id"] == 1
+    assert result[1]["team_name"] == "Team Liquid"
+    assert result[2]["tournament_id"] == 10
     assert result[0]["tournament_name"] == "Worlds 2024"
 
 
@@ -235,13 +252,14 @@ def test_serialize_roster_fans_out_one_row_per_team(mock_now):
 def test_serialize_roster_player_fields_are_null_in_mvp(mock_now):
     """Player-level fields are null in the MVP implementation."""
     raw = {
-        "id": 10, "name": "T",
+        "id": 10,
+        "name": "T",
         "modified_at": None,
         "teams": [{"id": 1, "name": "C9"}],
     }
     result = serialize_tournament_roster(raw)
 
-    assert result[0]["player_id"]   is None
+    assert result[0]["player_id"] is None
     assert result[0]["player_name"] is None
     assert result[0]["player_role"] is None
 
@@ -255,11 +273,15 @@ def test_serialize_roster_handles_no_teams(mock_now):
     assert result == []
 
 
-# ── serialize_records router ───────────────────────────────────────────────────
+# ── serialize_records router ───────────────────────────────────────────────
+
 
 @patch("src.extract.serializers.utc_now_iso", return_value=FAKE_NOW)
 def test_serialize_records_routes_leagues(mock_now):
-    records = [{"id": 1, "name": "LCS", "slug": "lcs", "url": None, "modified_at": None}]
+    records = [
+        {"id": 1, "name": "LCS", "slug": "lcs", "url": None, "modified_at":
+            None}
+    ]
     result = serialize_records("leagues", records)
 
     assert len(result) == 1
@@ -271,11 +293,15 @@ def test_serialize_records_routes_tournament_rosters(mock_now):
     """tournament_rosters fan-out is handled correctly by the router."""
     records = [
         {
-            "id": 1, "name": "T", "modified_at": None,
+            "id": 1,
+            "name": "T",
+            "modified_at": None,
             "teams": [{"id": 10, "name": "C9"}, {"id": 11, "name": "TL"}],
         },
         {
-            "id": 2, "name": "T2", "modified_at": None,
+            "id": 2,
+            "name": "T2",
+            "modified_at": None,
             "teams": [{"id": 12, "name": "100T"}],
         },
     ]

@@ -13,7 +13,9 @@ API_KEY = os.getenv("PANDASCORE_API_KEY")
 BASE_URL = os.getenv("PANDASCORE_BASE_URL", "https://api.pandascore.co")
 
 
-def fetch_endpoint_data(entity: str, page: int = 1, per_page: int = 50) -> list[dict[str, Any]]:
+def fetch_endpoint_data(
+    entity: str, page: int = 1, per_page: int = 50
+) -> list[dict[str, Any]]:
     """
     Fetch data from a PandaScore endpoint and return JSON records.
     """
@@ -46,6 +48,8 @@ def fetch_endpoint_data(entity: str, page: int = 1, per_page: int = 50) -> list[
     data = response.json()
 
     if not isinstance(data, list):
-        raise ValueError(f"Expected list response for entity '{entity}', got: {type(data)}")
+        raise ValueError(
+            f"Expected list response for entity '{entity}', got: {type(data)}"
+        )
 
     return data

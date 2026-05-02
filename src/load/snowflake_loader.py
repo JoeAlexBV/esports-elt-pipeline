@@ -52,8 +52,8 @@ def load_records_to_snowflake(
         """
 
         values_to_insert = [
-            tuple(record.get(column) for column in column_order)
-            for record in records
+            tuple(record.get(column)
+                  for column in column_order) for record in records
         ]
 
         cursor.executemany(insert_sql, values_to_insert)

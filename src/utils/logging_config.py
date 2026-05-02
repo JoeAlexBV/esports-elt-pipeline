@@ -8,6 +8,7 @@ Usage:
     logger = get_logger(__name__)
     logger.info("Loading %d records into %s", len(records), table_name)
 """
+
 import logging
 import sys
 

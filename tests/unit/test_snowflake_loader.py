@@ -5,23 +5,25 @@ Strategy:
 - Mock snowflake.connector.connect so we never touch a real database
 - Test the happy path, empty records, and connection/cursor lifecycle
 """
+
 import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock
 
 from src.load.snowflake_loader import load_records_to_snowflake
 
+# ── Helpers ────────────────────────────────────────────────────────────────
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
 
 def make_mock_conn():
     """Build a mock Snowflake connection with cursor, commit, close."""
     mock_cursor = MagicMock()
-    mock_conn   = MagicMock()
+    mock_conn = MagicMock()
     mock_conn.cursor.return_value = mock_cursor
     return mock_conn, mock_cursor
 
 
-# ── Happy path ─────────────────────────────────────────────────────────────────
+# ── Happy path ─────────────────────────────────────────────────────────────
+
 
 @patch("src.load.snowflake_loader.get_snowflake_connection")
 def test_load_inserts_correct_number_of_records(mock_get_conn):
@@ -30,13 +32,31 @@ def test_load_inserts_correct_number_of_records(mock_get_conn):
     mock_get_conn.return_value = mock_conn
 
     records = [
-        {"league_id": 1, "league_name": "LCS", "league_slug": "lcs",
-         "league_url": None, "modified_at": None, "ingested_at": "2024-01-01"},
-        {"league_id": 2, "league_name": "LEC", "league_slug": "lec",
-         "league_url": None, "modified_at": None, "ingested_at": "2024-01-01"},
+        {
+            "league_id": 1,
+            "league_name": "LCS",
+            "league_slug": "lcs",
+            "league_url": None,
+            "modified_at": None,
+            "ingested_at": "2024-01-01",
+        },
+        {
+            "league_id": 2,
+            "league_name": "LEC",
+            "league_slug": "lec",
+            "league_url": None,
+            "modified_at": None,
+            "ingested_at": "2024-01-01",
+        },
     ]
-    column_order = ["league_id", "league_name", "league_slug",
-                    "league_url", "modified_at", "ingested_at"]
+    column_order = [
+        "league_id",
+        "league_name",
+        "league_slug",
+        "league_url",
+        "modified_at",
+        "ingested_at",
+    ]
 
     load_records_to_snowflake(records, "ESPORTS.RAW.LEAGUES", column_order)
 
@@ -52,22 +72,36 @@ def test_load_builds_correct_insert_sql(mock_get_conn):
     mock_conn, mock_cursor = make_mock_conn()
     mock_get_conn.return_value = mock_conn
 
-    records = [{"league_id": 1, "league_name": "LCS", "league_slug": "lcs",
-                "league_url": None, "modified_at": None, "ingested_at": "now"}]
-    column_order = ["league_id", "league_name", "league_slug",
-                    "league_url", "modified_at", "ingested_at"]
+    records = [
+        {
+            "league_id": 1,
+            "league_name": "LCS",
+            "league_slug": "lcs",
+            "league_url": None,
+            "modified_at": None,
+            "ingested_at": "now",
+        }
+    ]
+    column_order = [
+        "league_id",
+        "league_name",
+        "league_slug",
+        "league_url",
+        "modified_at",
+        "ingested_at",
+    ]
 
     load_records_to_snowflake(records, "ESPORTS.RAW.LEAGUES", column_order)
 
     sql_used = mock_cursor.executemany.call_args[0][0]
     assert "ESPORTS.RAW.LEAGUES" in sql_used
-    assert "league_id"           in sql_used
-    assert "league_name"         in sql_used
+    assert "league_id" in sql_used
+    assert "league_name" in sql_used
 
 
 @patch("src.load.snowflake_loader.get_snowflake_connection")
 def test_load_maps_column_order_correctly(mock_get_conn):
-    """Values are inserted in the order defined by column_order, not dict order."""
+    """Values are inserted in the order defined by column_order."""
     mock_conn, mock_cursor = make_mock_conn()
     mock_get_conn.return_value = mock_conn
 
@@ -86,10 +120,24 @@ def test_load_commits_after_insert(mock_get_conn):
     mock_conn, mock_cursor = make_mock_conn()
     mock_get_conn.return_value = mock_conn
 
-    records = [{"league_id": 1, "league_name": "LCS", "league_slug": "lcs",
-                "league_url": None, "modified_at": None, "ingested_at": "now"}]
-    column_order = ["league_id", "league_name", "league_slug",
-                    "league_url", "modified_at", "ingested_at"]
+    records = [
+        {
+            "league_id": 1,
+            "league_name": "LCS",
+            "league_slug": "lcs",
+            "league_url": None,
+            "modified_at": None,
+            "ingested_at": "now",
+        }
+    ]
+    column_order = [
+        "league_id",
+        "league_name",
+        "league_slug",
+        "league_url",
+        "modified_at",
+        "ingested_at",
+    ]
 
     load_records_to_snowflake(records, "ESPORTS.RAW.LEAGUES", column_order)
 
@@ -102,10 +150,24 @@ def test_load_closes_cursor_and_connection(mock_get_conn):
     mock_conn, mock_cursor = make_mock_conn()
     mock_get_conn.return_value = mock_conn
 
-    records = [{"league_id": 1, "league_name": "LCS", "league_slug": "lcs",
-                "league_url": None, "modified_at": None, "ingested_at": "now"}]
-    column_order = ["league_id", "league_name", "league_slug",
-                    "league_url", "modified_at", "ingested_at"]
+    records = [
+        {
+            "league_id": 1,
+            "league_name": "LCS",
+            "league_slug": "lcs",
+            "league_url": None,
+            "modified_at": None,
+            "ingested_at": "now",
+        }
+    ]
+    column_order = [
+        "league_id",
+        "league_name",
+        "league_slug",
+        "league_url",
+        "modified_at",
+        "ingested_at",
+    ]
 
     load_records_to_snowflake(records, "ESPORTS.RAW.LEAGUES", column_order)
 
@@ -113,29 +175,45 @@ def test_load_closes_cursor_and_connection(mock_get_conn):
     mock_conn.close.assert_called_once()
 
 
-# ── Empty records ──────────────────────────────────────────────────────────────
+# ── Empty records ──────────────────────────────────────────────────────────
+
 
 @patch("src.load.snowflake_loader.get_snowflake_connection")
 def test_load_skips_insert_when_no_records(mock_get_conn):
-    """When records is empty, no connection is opened and nothing is inserted."""
+    # When records is empty, no connection is opened and nothing is inserted.
     load_records_to_snowflake([], "ESPORTS.RAW.LEAGUES", ["league_id"])
 
     mock_get_conn.assert_not_called()
 
 
-# ── Error handling ─────────────────────────────────────────────────────────────
+# ── Error handling ─────────────────────────────────────────────────────────
+
 
 @patch("src.load.snowflake_loader.get_snowflake_connection")
 def test_load_closes_connection_even_on_error(mock_get_conn):
-    """cursor.close() and conn.close() are called even if executemany raises."""
+    # cursor.close() and conn.close() are called even if executemany raises.
     mock_conn, mock_cursor = make_mock_conn()
     mock_get_conn.return_value = mock_conn
     mock_cursor.executemany.side_effect = Exception("DB exploded")
 
-    records = [{"league_id": 1, "league_name": "LCS", "league_slug": "lcs",
-                "league_url": None, "modified_at": None, "ingested_at": "now"}]
-    column_order = ["league_id", "league_name", "league_slug",
-                    "league_url", "modified_at", "ingested_at"]
+    records = [
+        {
+            "league_id": 1,
+            "league_name": "LCS",
+            "league_slug": "lcs",
+            "league_url": None,
+            "modified_at": None,
+            "ingested_at": "now",
+        }
+    ]
+    column_order = [
+        "league_id",
+        "league_name",
+        "league_slug",
+        "league_url",
+        "modified_at",
+        "ingested_at",
+    ]
 
     with pytest.raises(Exception, match="DB exploded"):
         load_records_to_snowflake(records, "ESPORTS.RAW.LEAGUES", column_order)

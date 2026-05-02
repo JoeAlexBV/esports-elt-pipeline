@@ -6,13 +6,14 @@ Strategy:
 - Test the happy path, error cases, and edge cases
 - Never require real credentials
 """
+
 import pytest
 from unittest.mock import patch, MagicMock
 
 from src.extract.pandascore_client import fetch_endpoint_data
 
+# ── Helpers ────────────────────────────────────────────────────────────────
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
 
 def make_mock_response(json_data, status_code=200):
     """Build a mock requests.Response object."""
@@ -26,6 +27,7 @@ def make_mock_response(json_data, status_code=200):
 def make_mock_response_http_error(status_code=500):
     """Build a mock requests.Response that raises on raise_for_status."""
     import requests
+
     mock_resp = MagicMock()
     mock_resp.status_code = status_code
     mock_resp.raise_for_status.side_effect = requests.exceptions.HTTPError(
@@ -34,7 +36,8 @@ def make_mock_response_http_error(status_code=500):
     return mock_resp
 
 
-# ── Happy path ─────────────────────────────────────────────────────────────────
+# ── Happy path ─────────────────────────────────────────────────────────────
+
 
 @patch("src.extract.pandascore_client.requests.get")
 @patch("src.extract.pandascore_client.API_KEY", "fake_test_key")
@@ -53,11 +56,13 @@ def test_fetch_leagues_returns_list(mock_get):
 @patch("src.extract.pandascore_client.API_KEY", "fake_test_key")
 def test_fetch_returns_multiple_records(mock_get):
     """fetch_endpoint_data returns all records from the response."""
-    mock_get.return_value = make_mock_response([
-        {"id": 1, "name": "LCS"},
-        {"id": 2, "name": "LEC"},
-        {"id": 3, "name": "LCK"},
-    ])
+    mock_get.return_value = make_mock_response(
+        [
+            {"id": 1, "name": "LCS"},
+            {"id": 2, "name": "LEC"},
+            {"id": 3, "name": "LCK"},
+        ]
+    )
 
     result = fetch_endpoint_data("leagues")
 
@@ -126,7 +131,8 @@ def test_fetch_empty_response(mock_get):
     assert result == []
 
 
-# ── Error cases ────────────────────────────────────────────────────────────────
+# ── Error cases ────────────────────────────────────────────────────────────
+
 
 def test_fetch_raises_for_unsupported_entity():
     """fetch_endpoint_data raises ValueError for unknown entities."""
@@ -146,6 +152,7 @@ def test_fetch_raises_when_api_key_missing():
 def test_fetch_raises_on_http_error(mock_get):
     """fetch_endpoint_data propagates HTTP errors from requests."""
     import requests
+
     mock_get.return_value = make_mock_response_http_error(500)
 
     with pytest.raises(requests.exceptions.HTTPError):

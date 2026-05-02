@@ -1,21 +1,16 @@
-[
-tool.pytest.ini_options
-]
+[tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v"
+pythonpath = ["."] 
 
-[
-tool.ruff
-]
+[tool.ruff]
 line-length = 100
 target-version = "py312"
 
-[
-project
-]
+[project]
 name = "esports-elt-pipeline"
 version = "0.1.0"
 description = "Modern ELT pipeline for PandaScore esports data using Python, Snowflake, dbt, and Airflow"

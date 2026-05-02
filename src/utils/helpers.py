@@ -1,6 +1,7 @@
 """
 General-purpose utility functions for the esports ELT pipeline.
 """
+
 from datetime import datetime, timezone
 
 
@@ -18,7 +19,7 @@ def chunk_list(lst: list, size: int) -> list[list]:
     Example:
         chunk_list([1, 2, 3, 4, 5], 2) → [[1, 2], [3, 4], [5]]
     """
-    return [lst[i : i + size] for i in range(0, len(lst), size)]
+    return [lst[i:i + size] for i in range(0, len(lst), size)]
 
 
 def safe_get(d: dict, *keys, default=None):
